@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────
+# DuckDB Analytics Layer — .gitignore
+# ─────────────────────────────────────────────
+
+# Environment variables
+.env
+
+# DuckDB database files
+*.duckdb
+*.duckdb.wal
+
+# Data files — too large for git
+data/raw/
+data/processed/
+data/reports/
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

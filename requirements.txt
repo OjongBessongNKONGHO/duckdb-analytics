@@ -1,0 +1,22 @@
+# Core
+duckdb==1.5.3
+pandas==3.0.0
+numpy==2.4.2
+pyarrow==24.0.0
+python-dotenv==1.2.2
+
+# CLI
+click==8.4.1
+
+# Scheduling
+apscheduler==3.11.2
+
+# Reporting
+jinja2==3.1.6
+
+# Database
+psycopg2-binary==2.9.12
+
+# Testing
+pytest==9.0.3
+pytest-mock==3.12.0
