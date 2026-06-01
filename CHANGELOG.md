@@ -18,3 +18,7 @@ All notable changes to this project are documented here.
 - Makefile with shortcuts for analyse, validate, export, test and clean
 - CONTRIBUTING.md with contribution guidelines
 - Mermaid architecture diagram in README
+## [1.0.1] - 2026-06-01
+
+### Improved
+- Added project roadmap: next steps include Spark integration and dbt transformation layer
