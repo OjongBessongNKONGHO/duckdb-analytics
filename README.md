@@ -7,7 +7,7 @@
 ![Status](https://img.shields.io/badge/Status-Active-success?style=flat)
 ![CI](https://github.com/OjongBessongNKONGHO/duckdb-analytics/actions/workflows/ci.yml/badge.svg)
 
-An analytical layer built on top of the weather data pipelines from Projects 1 and 2. Uses DuckDB as a fast OLAP engine to run 8 analytical queries on weather data collected from PostgreSQL, validates data quality before analysis, exports results to Parquet and provides a CLI interface.
+An analytical layer built on top of the weather data pipelines from Projects 1 and 2. Uses DuckDB as a fast OLAP engine to run 10 analytical queries on weather data collected from PostgreSQL, validates data quality before analysis, exports results to Parquet and provides a CLI interface.
 
 Built as the fourth project in my Data Engineering portfolio to demonstrate the difference between OLTP storage (PostgreSQL) and OLAP analysis (DuckDB), and to show how analytical layers sit on top of data pipelines in production.
 
@@ -24,9 +24,9 @@ flowchart TD
 
     subgraph DuckDB Analytics Layer
         CONN[🔌 PostgreSQL Connector\nRetry logic + connection pooling]
-        VAL[✅ Data Validator\n8 quality checks]
+        VAL[✅ Data Validator\n10 quality checks]
         DUCK[🦆 DuckDB Engine\nOLAP queries]
-        QUERY[📊 Query Layer\n8 analytical queries]
+        QUERY[📊 Query Layer\n10 analytical queries]
         EXP[📦 Parquet Exporter\nSnappy compression]
         CLI[⌨️ CLI Interface\nClick commands]
     end
@@ -52,7 +52,7 @@ flowchart TD
 1. **PostgreSQL Connector** loads weather data from Projects 1 and 2 with retry logic
 2. **Data Validator** runs 8 quality checks before any analysis begins
 3. **DuckDB Engine** loads validated data into memory for fast OLAP queries
-4. **Query Layer** runs 8 analytical queries covering temperature, humidity, wind and anomalies
+4. **Query Layer** runs 10 analytical queries covering temperature, humidity, wind and anomalies
 5. **Parquet Exporter** exports results to columnar Parquet files with Snappy compression
 6. **CLI Interface** orchestrates the full pipeline with simple commands
 
@@ -69,13 +69,13 @@ flowchart TD
 | CLI | Click | 8.4.1 | Command-line interface |
 | Scheduling | APScheduler | 3.11.2 | Hourly analytics runs |
 | Templating | Jinja2 | 3.1.6 | HTML report generation |
-| Testing | pytest | 9.0.3 | 29 unit tests |
+| Testing | pytest | 9.0.3 | 29 unit tests 
 
 ---
 
 ## ✨ Key Features
 
-- **8 OLAP analytical queries** — average temperature, city rankings, humidity trends, wind distribution, condition frequency, temperature/humidity correlation, daily range, anomaly detection
+- **10 OLAP analytical queries** — average temperature, city rankings, humidity trends, wind distribution, condition frequency, temperature/humidity correlation, daily range, anomaly detection, pressure trends, feels-like gap
 - **8 data quality checks** — empty dataset, required columns, null values, temperature range, humidity range, wind speed range, duplicates, pressure range
 - **DuckDB OLAP engine** — queries run in milliseconds on datasets that would be slow in PostgreSQL
 - **Parquet export** — results exported to columnar Parquet format with Snappy compression
@@ -83,7 +83,7 @@ flowchart TD
 - **Retry logic** — PostgreSQL connector retries 3 times with delay on connection failure
 - **Structured logging** — every query, validation and export logged with timing metrics
 - **Sample data mode** — run full analytics without PostgreSQL using generated sample data
-- **29 unit tests** — covering all 8 queries and all 8 validation checks
+- **29 unit tests** — covering all 10 queries and all 8 validation checks
 - **CI/CD** — GitHub Actions runs tests and full analytics on every push
 
 ---
@@ -92,8 +92,8 @@ flowchart TD
 
 | Metric | Value |
 |---|---|
-| Analytical queries | 8 OLAP queries |
-| Data quality checks | 8 validation checks |
+| Analytical queries | 10 OLAP queries |
+| Data quality checks | 8  validation checks |
 | Records analysed | 2,880 records per sample run |
 | Cities covered | 12 across 6 continents |
 | Average query time | under 30ms per query |
@@ -112,7 +112,7 @@ duckdb-analytics/
 │   ├── connectors/
 │   │   └── postgres_connector.py   # PostgreSQL to DuckDB loader with retry logic
 │   ├── queries/
-│   │   └── weather_queries.py      # 8 analytical OLAP queries
+│   │   └── weather_queries.py      # 10 analytical OLAP queries
 │   ├── exporters/
 │   │   └── parquet_exporter.py     # Parquet export via PyArrow
 │   └── validators/
