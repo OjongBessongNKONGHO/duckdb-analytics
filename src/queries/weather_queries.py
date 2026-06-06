@@ -183,21 +183,63 @@ class WeatherQueries:
             LIMIT 50
         """)
 
+    def pressure_trends(self) -> pd.DataFrame:
+        """
+        Query 9: Atmospheric pressure trends per city over time.
+        Falling pressure indicates incoming storms, rising pressure
+        indicates improving weather — useful for forecasting.
+        """
+        logger.info("Running: pressure_trends")
+        return self.connector.execute_query("""
+            SELECT
+                city,
+                DATE_TRUNC('day', recorded_at)          AS date,
+                ROUND(AVG(pressure), 2)                 AS avg_pressure,
+                ROUND(MIN(pressure), 2)                 AS min_pressure,
+                ROUND(MAX(pressure), 2)                 AS max_pressure,
+                ROUND(MAX(pressure) - MIN(pressure), 2) AS pressure_range
+            FROM weather_data
+            GROUP BY city, DATE_TRUNC('day', recorded_at)
+            ORDER BY city, date DESC
+        """)
+
+    def feels_like_gap(self) -> pd.DataFrame:
+        """
+        Query 10: Gap between actual temperature and feels-like per city.
+        Large negative gaps mean wind chill makes it feel much colder.
+        Large positive gaps mean humidity makes it feel much hotter.
+        """
+        logger.info("Running: feels_like_gap")
+        return self.connector.execute_query("""
+            SELECT
+                city,
+                ROUND(AVG(temperature), 2)              AS avg_actual_temp,
+                ROUND(AVG(feels_like), 2)               AS avg_feels_like,
+                ROUND(AVG(feels_like - temperature), 2) AS avg_gap,
+                ROUND(MIN(feels_like - temperature), 2) AS min_gap,
+                ROUND(MAX(feels_like - temperature), 2) AS max_gap
+            FROM weather_data
+            GROUP BY city
+            ORDER BY avg_gap DESC
+        """)
+
     def run_all(self) -> dict:
         """
-        Run all 8 analytical queries and return results as a dictionary.
+        Run all 10 analytical queries and return results as a dictionary.
         """
-        logger.info("Running all 8 analytical queries")
+        logger.info("Running all 10 analytical queries")
         results = {}
         queries = {
-            "avg_temperature_per_city":      self.avg_temperature_per_city,
-            "hottest_coldest_ranking":       self.hottest_coldest_ranking,
-            "humidity_trends":               self.humidity_trends,
-            "wind_speed_distribution":       self.wind_speed_distribution,
-            "weather_condition_frequency":   self.weather_condition_frequency,
+            "avg_temperature_per_city":         self.avg_temperature_per_city,
+            "hottest_coldest_ranking":          self.hottest_coldest_ranking,
+            "humidity_trends":                  self.humidity_trends,
+            "wind_speed_distribution":          self.wind_speed_distribution,
+            "weather_condition_frequency":      self.weather_condition_frequency,
             "temperature_humidity_correlation": self.temperature_humidity_correlation,
-            "daily_temperature_range":       self.daily_temperature_range,
-            "anomaly_detection":             self.anomaly_detection,
+            "daily_temperature_range":          self.daily_temperature_range,
+            "anomaly_detection":                self.anomaly_detection,
+            "pressure_trends":                  self.pressure_trends,
+            "feels_like_gap":                   self.feels_like_gap,
         }
         for name, query_fn in queries.items():
             try:
