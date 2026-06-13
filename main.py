@@ -80,8 +80,10 @@ def cli():
               help="Use sample data instead of PostgreSQL")
 @click.option("--export", is_flag=True, default=False,
               help="Export results to Parquet files")
-def analyse(use_sample, export):
-    """Run all 8 analytical queries on weather data."""
+@click.option("--incremental", is_flag=True, default=False,
+              help="Only load new records since the last run (append instead of full reload)")
+def analyse(use_sample, export, incremental):
+    """Run all 10 analytical queries on weather data."""
     logger.info("Starting weather analytics")
 
     with PostgresConnector() as connector:
@@ -89,6 +91,11 @@ def analyse(use_sample, export):
             logger.info("Using sample data")
             df = get_sample_data()
             connector.load_from_dataframe(df)
+        elif incremental:
+            logger.info("Loading data incrementally from PostgreSQL")
+            new_df = connector.load_incremental()
+            connector.append_to_table(new_df)
+            df = connector.execute_query("SELECT * FROM weather_data ORDER BY recorded_at DESC")
         else:
             logger.info("Loading data from PostgreSQL")
             df = connector.load_weather_data()

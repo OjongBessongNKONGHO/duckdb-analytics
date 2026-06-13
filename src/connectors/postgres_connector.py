@@ -77,6 +77,97 @@ class PostgresConnector:
                     logger.error("All retry attempts exhausted")
                     raise
 
+    def get_last_loaded_timestamp(self, table_name: str = "weather_data") -> Optional[pd.Timestamp]:
+        """
+        Return the most recent recorded_at timestamp currently stored in
+        the DuckDB table, or None if the table does not exist or is empty.
+
+        Used to determine the starting point for an incremental load —
+        only rows newer than this timestamp need to be fetched from
+        PostgreSQL.
+        """
+        try:
+            result = self.conn.execute(
+                f"SELECT MAX(recorded_at) FROM {table_name}"
+            ).fetchone()
+            max_ts = result[0] if result else None
+            if max_ts is None:
+                logger.info(f"No existing data in '{table_name}' — full load required")
+            else:
+                logger.info(f"Latest record in '{table_name}': {max_ts}")
+            return max_ts
+        except duckdb.CatalogException:
+            logger.info(f"Table '{table_name}' does not exist yet — full load required")
+            return None
+
+    def load_incremental(self, table: str = "weather_data") -> pd.DataFrame:
+        """
+        Load only rows from PostgreSQL with recorded_at newer than the
+        most recent record already present in DuckDB.
+
+        If the DuckDB table does not exist yet, falls back to a full
+        load via load_weather_data() — the first run of an incremental
+        pipeline is necessarily a full load.
+
+        Returns an empty DataFrame if there is no new data.
+        """
+        last_loaded = self.get_last_loaded_timestamp(table)
+
+        if last_loaded is None:
+            logger.info("Performing initial full load")
+            return self.load_weather_data(table=table)
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                logger.info(
+                    f"Loading incremental data from PostgreSQL — "
+                    f"records after {last_loaded} — attempt {attempt}/{self.max_retries}"
+                )
+                self.conn.execute("INSTALL postgres;")
+                self.conn.execute("LOAD postgres;")
+                self.conn.execute(f"""
+                    ATTACH '{POSTGRES_URL}' AS pg_db (TYPE postgres, READ_ONLY)
+                """)
+                df = self.conn.execute(f"""
+                    SELECT * FROM pg_db.{table}
+                    WHERE recorded_at > '{last_loaded}'
+                    ORDER BY recorded_at DESC
+                """).df()
+                logger.info(f"Loaded {len(df)} new record(s) since {last_loaded}")
+                return df
+            except Exception as e:
+                logger.error(f"Attempt {attempt} failed: {e}")
+                if attempt < self.max_retries:
+                    logger.info(f"Retrying in {self.retry_delay} seconds...")
+                    time.sleep(self.retry_delay)
+                else:
+                    logger.error("All retry attempts exhausted")
+                    raise
+
+    def append_to_table(self, df: pd.DataFrame, table_name: str = "weather_data"):
+        """
+        Append new rows to an existing DuckDB table without dropping it.
+
+        If the table does not exist yet, it is created from the
+        DataFrame — equivalent to load_from_dataframe() for the first run.
+        If df is empty, this is a no-op.
+        """
+        if df.empty:
+            logger.info(f"No new rows to append to '{table_name}'")
+            return
+
+        table_exists = self.conn.execute(f"""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_name = '{table_name}'
+        """).fetchone()[0] > 0
+
+        if table_exists:
+            self.conn.execute(f"INSERT INTO {table_name} SELECT * FROM df")
+            logger.info(f"Appended {len(df)} record(s) to '{table_name}'")
+        else:
+            self.conn.execute(f"CREATE TABLE {table_name} AS SELECT * FROM df")
+            logger.info(f"Created '{table_name}' with {len(df)} record(s)")
+
     def load_from_dataframe(self, df: pd.DataFrame, table_name: str = "weather_data"):
         """
         Load a pandas DataFrame directly into DuckDB.
