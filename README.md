@@ -69,7 +69,7 @@ flowchart TD
 | CLI | Click | 8.4.1 | Command-line interface |
 | Scheduling | APScheduler | 3.11.2 | Hourly analytics runs |
 | Templating | Jinja2 | 3.1.6 | HTML report generation |
-| Testing | pytest | 9.0.3 | 29 unit tests 
+| Testing | pytest | 9.0.3 | 35 unit tests
 
 ---
 
@@ -82,8 +82,8 @@ flowchart TD
 - **CLI interface** — run analytics, validate data and list exports from the command line
 - **Retry logic** — PostgreSQL connector retries 3 times with delay on connection failure
 - **Structured logging** — every query, validation and export logged with timing metrics
-- **Sample data mode** — run full analytics without PostgreSQL using generated sample data
-- **29 unit tests** — covering all 10 queries and all 8 validation checks
+- **Incremental loading** — `--incremental` flag loads only new records since the last run, appending to DuckDB instead of a full reload
+- **35 unit tests** — covering all 10 queries, all 8 validation checks, and incremental loading
 - **CI/CD** — GitHub Actions runs tests and full analytics on every push
 
 ---
@@ -98,7 +98,7 @@ flowchart TD
 | Cities covered | 12 across 6 continents |
 | Average query time | under 30ms per query |
 | Export format | Parquet with Snappy compression |
-| Unit tests | 29 passing |
+| Unit tests | 35 passing |
 | CI status | GitHub Actions — passing |
 
 ---
@@ -203,7 +203,7 @@ Or using Makefile:
 make analyse    # Run analytics with sample data
 make validate   # Run data quality validation
 make export     # Run analytics and export to Parquet
-make test       # Run all 29 tests
+make test       # Run all 35 tests
 make clean      # Remove generated files
 ```
 
