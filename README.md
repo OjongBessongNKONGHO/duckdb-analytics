@@ -119,6 +119,7 @@ duckdb-analytics/
 │       └── data_validator.py       # 8 data quality checks
 │
 ├── tests/
+│   ├── test_connector.py           # 6 incremental loading tests with tmp DuckDB
 │   ├── test_queries.py             # 10 query tests with in-memory DuckDB
 │   └── test_validator.py           # 19 validator tests with fixtures
 │
