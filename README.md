@@ -26,7 +26,7 @@ flowchart TD
         CONN[🔌 PostgreSQL Connector\nRetry logic + connection pooling]
         VAL[✅ Data Validator\n10 quality checks]
         DUCK[🦆 DuckDB Engine\nOLAP queries]
-        QUERY[📊 Query Layer\n10 analytical queries]
+        QUERY[📊 Query Layer\n12 analytical queries]
         EXP[📦 Parquet Exporter\nSnappy compression]
         CLI[⌨️ CLI Interface\nClick commands]
     end
@@ -52,7 +52,7 @@ flowchart TD
 1. **PostgreSQL Connector** loads weather data from Projects 1 and 2 with retry logic
 2. **Data Validator** runs 8 quality checks before any analysis begins
 3. **DuckDB Engine** loads validated data into memory for fast OLAP queries
-4. **Query Layer** runs 10 analytical queries covering temperature, humidity, wind and anomalies
+4. **Query Layer** runs 12 analytical queries covering temperature, humidity, wind and anomalies
 5. **Parquet Exporter** exports results to columnar Parquet files with Snappy compression
 6. **CLI Interface** orchestrates the full pipeline with simple commands
 
@@ -75,7 +75,7 @@ flowchart TD
 
 ## ✨ Key Features
 
-- **10 OLAP analytical queries** — average temperature, city rankings, humidity trends, wind distribution, condition frequency, temperature/humidity correlation, daily range, anomaly detection, pressure trends, feels-like gap
+- **12 OLAP analytical queries** — average temperature, city rankings, humidity trends, wind distribution, condition frequency, temperature/humidity correlation, daily range, anomaly detection, pressure trends, feels-like gap, visibility impact, hourly weather pattern
 - **8 data quality checks** — empty dataset, required columns, null values, temperature range, humidity range, wind speed range, duplicates, pressure range
 - **DuckDB OLAP engine** — queries run in milliseconds on datasets that would be slow in PostgreSQL
 - **Parquet export** — results exported to columnar Parquet format with Snappy compression
@@ -83,7 +83,7 @@ flowchart TD
 - **Retry logic** — PostgreSQL connector retries 3 times with delay on connection failure
 - **Structured logging** — every query, validation and export logged with timing metrics
 - **Incremental loading** — `--incremental` flag loads only new records since the last run, appending to DuckDB instead of a full reload
-- **35 unit tests** — covering all 10 queries, all 8 validation checks, and incremental loading
+- **35 unit tests** — covering the original 10 queries, all 8 validation checks, and incremental loading. The 2 newest queries are not yet covered by dedicated tests.
 - **CI/CD** — GitHub Actions runs tests and full analytics on every push
 
 ---
@@ -92,7 +92,7 @@ flowchart TD
 
 | Metric | Value |
 |---|---|
-| Analytical queries | 10 OLAP queries |
+| Analytical queries | 12 OLAP queries |
 | Data quality checks | 8  validation checks |
 | Records analysed | 2,880 records per sample run |
 | Cities covered | 12 across 6 continents |
@@ -112,7 +112,7 @@ duckdb-analytics/
 │   ├── connectors/
 │   │   └── postgres_connector.py   # PostgreSQL to DuckDB loader with retry logic
 │   ├── queries/
-│   │   └── weather_queries.py      # 10 analytical OLAP queries
+│   │   └── weather_queries.py      # 12 analytical OLAP queries
 │   ├── exporters/
 │   │   └── parquet_exporter.py     # Parquet export via PyArrow
 │   └── validators/
