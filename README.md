@@ -7,7 +7,7 @@
 ![Status](https://img.shields.io/badge/Status-Active-success?style=flat)
 ![CI](https://github.com/OjongBessongNKONGHO/duckdb-analytics/actions/workflows/ci.yml/badge.svg)
 
-An analytical layer built on top of the weather data pipelines from Projects 1 and 2. Uses DuckDB as a fast OLAP engine to run 10 analytical queries on weather data collected from PostgreSQL, validates data quality before analysis, exports results to Parquet and provides a CLI interface.
+An analytical layer built on top of the weather data pipelines from Projects 1 and 2. Uses DuckDB as a fast OLAP engine to run 12 analytical queries on weather data collected from PostgreSQL, validates data quality before analysis, exports results to Parquet and provides a CLI interface.
 
 Built as the fourth project in my Data Engineering portfolio to demonstrate the difference between OLTP storage (PostgreSQL) and OLAP analysis (DuckDB), and to show how analytical layers sit on top of data pipelines in production.
 
@@ -83,7 +83,7 @@ flowchart TD
 - **Retry logic** — PostgreSQL connector retries 3 times with delay on connection failure
 - **Structured logging** — every query, validation and export logged with timing metrics
 - **Incremental loading** — `--incremental` flag loads only new records since the last run, appending to DuckDB instead of a full reload
-- **35 unit tests** — covering the original 10 queries, all 8 validation checks, and incremental loading. The 2 newest queries are not yet covered by dedicated tests.
+- **35 unit tests** — covering 10 of the 12 OLAP queries, all 8 validation checks, and incremental loading.
 - **CI/CD** — GitHub Actions runs tests and full analytics on every push
 
 ---
