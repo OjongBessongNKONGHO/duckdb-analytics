@@ -69,13 +69,13 @@ flowchart TD
 | CLI | Click | 8.4.1 | Command-line interface |
 | Scheduling | APScheduler | 3.11.2 | Hourly analytics runs |
 | Templating | Jinja2 | 3.1.6 | HTML report generation |
-| Testing | pytest | 9.0.3 | 35 unit tests
+| Testing | pytest | 9.0.3 | 37 unit tests
 
 ---
 
 ## ✨ Key Features
 
-- **12 OLAP analytical queries** — average temperature, city rankings, humidity trends, wind distribution, condition frequency, temperature/humidity correlation, daily range, anomaly detection, pressure trends, feels-like gap, visibility impact, hourly weather pattern
+- **14 OLAP analytical queries** — average temperature, city rankings, humidity trends, wind distribution, condition frequency, temperature/humidity correlation, daily range, anomaly detection, pressure trends, feels-like gap, visibility impact, hourly weather pattern, data freshness monitoring, month-over-month temperature trend
 - **8 data quality checks** — empty dataset, required columns, null values, temperature range, humidity range, wind speed range, duplicates, pressure range
 - **DuckDB OLAP engine** — queries run in milliseconds on datasets that would be slow in PostgreSQL
 - **Parquet export** — results exported to columnar Parquet format with Snappy compression
@@ -83,7 +83,7 @@ flowchart TD
 - **Retry logic** — PostgreSQL connector retries 3 times with delay on connection failure
 - **Structured logging** — every query, validation and export logged with timing metrics
 - **Incremental loading** — `--incremental` flag loads only new records since the last run, appending to DuckDB instead of a full reload
-- **35 unit tests** — covering 10 of the 12 OLAP queries, all 8 validation checks, and incremental loading.
+- **37 unit tests** — covering 12 of the 14 OLAP queries, all 8 validation checks, and incremental loading.
 - **CI/CD** — GitHub Actions runs tests and full analytics on every push
 
 ---
@@ -92,7 +92,7 @@ flowchart TD
 
 | Metric | Value |
 |---|---|
-| Analytical queries | 12 OLAP queries |
+| Analytical queries | 14 OLAP queries |
 | Data quality checks | 8  validation checks |
 | Records analysed | 2,880 records per sample run |
 | Cities covered | 12 across 6 continents |
@@ -204,7 +204,7 @@ Or using Makefile:
 make analyse    # Run analytics with sample data
 make validate   # Run data quality validation
 make export     # Run analytics and export to Parquet
-make test       # Run all 35 tests
+make test       # Run all 37 tests
 make clean      # Remove generated files
 ```
 

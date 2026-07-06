@@ -181,3 +181,41 @@ def test_all_cities_present(duckdb_conn):
     ).df()
     expected_cities = {"Paris", "London", "New York", "Tokyo", "Douala", "Dubai"}
     assert set(result["city"].tolist()) == expected_cities
+    
+def test_data_freshness_per_city(duckdb_conn):
+    """Test freshness query flags status per city and covers every city."""
+    result = duckdb_conn.execute("""
+        SELECT city,
+               MAX(recorded_at) AS last_recorded_at,
+               COUNT(*) AS total_records,
+               DATE_DIFF('hour', MAX(recorded_at), CURRENT_TIMESTAMP) AS hours_since_last_record,
+               CASE
+                   WHEN DATE_DIFF('hour', MAX(recorded_at), CURRENT_TIMESTAMP) > 24 THEN 'Stale'
+                   WHEN DATE_DIFF('hour', MAX(recorded_at), CURRENT_TIMESTAMP) > 6  THEN 'Delayed'
+                   ELSE 'Fresh'
+               END AS freshness_status
+        FROM weather_data
+        GROUP BY city
+        ORDER BY hours_since_last_record DESC
+    """).df()
+    assert len(result) == 6
+    assert set(result["freshness_status"].unique()).issubset({"Fresh", "Delayed", "Stale"})
+
+
+def test_monthly_temperature_trend(duckdb_conn):
+    """Test month-over-month trend query returns expected columns."""
+    result = duckdb_conn.execute("""
+        SELECT city,
+               DATE_TRUNC('month', recorded_at) AS month,
+               ROUND(AVG(temperature), 2) AS avg_temperature,
+               ROUND(
+                   AVG(temperature) - LAG(AVG(temperature)) OVER (
+                       PARTITION BY city ORDER BY DATE_TRUNC('month', recorded_at)
+                   ), 2
+               ) AS change_from_previous_month
+        FROM weather_data
+        GROUP BY city, DATE_TRUNC('month', recorded_at)
+        ORDER BY city, month
+    """).df()
+    assert len(result) > 0
+    assert "change_from_previous_month" in result.columns    

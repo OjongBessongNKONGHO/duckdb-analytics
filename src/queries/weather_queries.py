@@ -292,12 +292,60 @@ class WeatherQueries:
             ORDER BY hour_of_day
         """
         )
+    def data_freshness_per_city(self) -> pd.DataFrame:
+        """
+        Query 13: Time since the most recent reading per city.
+        Flags cities whose data pipeline may be stalled or lagging,
+        since a stale feed silently skews every aggregate query above.
+        """
+        logger.info("Running: data_freshness_per_city")
+        return self.connector.execute_query(
+            """
+            SELECT
+                city,
+                MAX(recorded_at)                                        AS last_recorded_at,
+                COUNT(*)                                                AS total_records,
+                DATE_DIFF('hour', MAX(recorded_at), CURRENT_TIMESTAMP)  AS hours_since_last_record,
+                CASE
+                    WHEN DATE_DIFF('hour', MAX(recorded_at), CURRENT_TIMESTAMP) > 24 THEN 'Stale'
+                    WHEN DATE_DIFF('hour', MAX(recorded_at), CURRENT_TIMESTAMP) > 6  THEN 'Delayed'
+                    ELSE 'Fresh'
+                END AS freshness_status
+            FROM weather_data
+            GROUP BY city
+            ORDER BY hours_since_last_record DESC
+        """
+        )
+
+    def monthly_temperature_trend(self) -> pd.DataFrame:
+        """
+        Query 14: Month-over-month average temperature per city.
+        Uses LAG to compute the change from the previous month, showing
+        whether each city is warming or cooling over the collection period.
+        """
+        logger.info("Running: monthly_temperature_trend")
+        return self.connector.execute_query(
+            """
+            SELECT
+                city,
+                DATE_TRUNC('month', recorded_at)                                    AS month,
+                ROUND(AVG(temperature), 2)                                          AS avg_temperature,
+                ROUND(
+                    AVG(temperature) - LAG(AVG(temperature)) OVER (
+                        PARTITION BY city ORDER BY DATE_TRUNC('month', recorded_at)
+                    ), 2
+                )                                                                    AS change_from_previous_month
+            FROM weather_data
+            GROUP BY city, DATE_TRUNC('month', recorded_at)
+            ORDER BY city, month
+        """
+        )
 
     def run_all(self) -> dict:
         """
-        Run all 12 analytical queries and return results as a dictionary.
+        Run all 14 analytical queries and return results as a dictionary.
         """
-        logger.info("Running all 12 analytical queries")
+        logger.info("Running all 14 analytical queries")
         results = {}
         queries = {
             "avg_temperature_per_city": self.avg_temperature_per_city,
@@ -312,6 +360,8 @@ class WeatherQueries:
             "feels_like_gap": self.feels_like_gap,
             "visibility_impact": self.visibility_impact,
             "hourly_weather_pattern": self.hourly_weather_pattern,
+            "data_freshness_per_city": self.data_freshness_per_city,
+            "monthly_temperature_trend": self.monthly_temperature_trend,
         }
         for name, query_fn in queries.items():
             try:
