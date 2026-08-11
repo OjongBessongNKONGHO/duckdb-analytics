@@ -25,8 +25,7 @@ class WeatherQueries:
         Shows which cities are warmest and coldest on average.
         """
         logger.info("Running: avg_temperature_per_city")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 country,
@@ -38,8 +37,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, country
             ORDER BY avg_temperature DESC
-        """
-        )
+        """)
 
     def hottest_coldest_ranking(self) -> pd.DataFrame:
         """
@@ -47,8 +45,7 @@ class WeatherQueries:
         Uses window functions for ranking.
         """
         logger.info("Running: hottest_coldest_ranking")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 country,
@@ -58,8 +55,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, country
             ORDER BY hottest_rank
-        """
-        )
+        """)
 
     def humidity_trends(self) -> pd.DataFrame:
         """
@@ -67,8 +63,7 @@ class WeatherQueries:
         Shows how humidity changes day by day.
         """
         logger.info("Running: humidity_trends")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 DATE_TRUNC('day', recorded_at)  AS date,
@@ -78,8 +73,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, DATE_TRUNC('day', recorded_at)
             ORDER BY city, date DESC
-        """
-        )
+        """)
 
     def wind_speed_distribution(self) -> pd.DataFrame:
         """
@@ -87,8 +81,7 @@ class WeatherQueries:
         Categorises wind into calm, breeze, moderate, strong.
         """
         logger.info("Running: wind_speed_distribution")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 CASE
@@ -102,8 +95,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, wind_category
             ORDER BY city, occurrences DESC
-        """
-        )
+        """)
 
     def weather_condition_frequency(self) -> pd.DataFrame:
         """
@@ -111,8 +103,7 @@ class WeatherQueries:
         Shows what weather each city experiences most.
         """
         logger.info("Running: weather_condition_frequency")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 weather_description,
@@ -121,8 +112,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, weather_description
             ORDER BY city, occurrences DESC
-        """
-        )
+        """)
 
     def temperature_humidity_correlation(self) -> pd.DataFrame:
         """
@@ -130,8 +120,7 @@ class WeatherQueries:
         Shows if higher temperatures mean lower humidity.
         """
         logger.info("Running: temperature_humidity_correlation")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 ROUND(CORR(temperature, humidity), 4) AS temp_humidity_correlation,
@@ -140,8 +129,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city
             ORDER BY temp_humidity_correlation DESC
-        """
-        )
+        """)
 
     def daily_temperature_range(self) -> pd.DataFrame:
         """
@@ -149,8 +137,7 @@ class WeatherQueries:
         Shows temperature variability throughout each day.
         """
         logger.info("Running: daily_temperature_range")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 DATE_TRUNC('day', recorded_at)                      AS date,
@@ -161,8 +148,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, DATE_TRUNC('day', recorded_at)
             ORDER BY city, date DESC
-        """
-        )
+        """)
 
     def anomaly_detection(self, std_threshold: float = 2.0) -> pd.DataFrame:
         """
@@ -171,8 +157,7 @@ class WeatherQueries:
         standard deviations from the city mean.
         """
         logger.info(f"Running: anomaly_detection (threshold={std_threshold})")
-        return self.connector.execute_query(
-            f"""
+        return self.connector.execute_query(f"""
             WITH city_stats AS (
                 SELECT
                     city,
@@ -197,8 +182,7 @@ class WeatherQueries:
             WHERE ABS(w.temperature - cs.mean_temp) > {std_threshold} * cs.stddev_temp
             ORDER BY z_score DESC
             LIMIT 50
-        """
-        )
+        """)
 
     def pressure_trends(self) -> pd.DataFrame:
         """
@@ -207,8 +191,7 @@ class WeatherQueries:
         indicates improving weather — useful for forecasting.
         """
         logger.info("Running: pressure_trends")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 DATE_TRUNC('day', recorded_at)          AS date,
@@ -219,8 +202,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, DATE_TRUNC('day', recorded_at)
             ORDER BY city, date DESC
-        """
-        )
+        """)
 
     def feels_like_gap(self) -> pd.DataFrame:
         """
@@ -229,8 +211,7 @@ class WeatherQueries:
         Large positive gaps mean humidity makes it feel much hotter.
         """
         logger.info("Running: feels_like_gap")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 ROUND(AVG(temperature), 2)              AS avg_actual_temp,
@@ -241,8 +222,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city
             ORDER BY avg_gap DESC
-        """
-        )
+        """)
 
     def visibility_impact(self) -> pd.DataFrame:
         """
@@ -251,8 +231,7 @@ class WeatherQueries:
         direct operational impact for transport and logistics planning.
         """
         logger.info("Running: visibility_impact")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 weather_description,
@@ -268,8 +247,7 @@ class WeatherQueries:
             GROUP BY city, weather_description
             HAVING AVG(visibility) < 10000
             ORDER BY avg_visibility ASC
-        """
-        )
+        """)
 
     def hourly_weather_pattern(self) -> pd.DataFrame:
         """
@@ -279,8 +257,7 @@ class WeatherQueries:
         queries above, which group by date rather than time of day.
         """
         logger.info("Running: hourly_weather_pattern")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 EXTRACT(HOUR FROM recorded_at)  AS hour_of_day,
                 ROUND(AVG(temperature), 2)      AS avg_temperature,
@@ -290,8 +267,8 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY EXTRACT(HOUR FROM recorded_at)
             ORDER BY hour_of_day
-        """
-        )
+        """)
+
     def data_freshness_per_city(self) -> pd.DataFrame:
         """
         Query 13: Time since the most recent reading per city.
@@ -299,8 +276,7 @@ class WeatherQueries:
         since a stale feed silently skews every aggregate query above.
         """
         logger.info("Running: data_freshness_per_city")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 MAX(recorded_at)                                        AS last_recorded_at,
@@ -314,8 +290,7 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city
             ORDER BY hours_since_last_record DESC
-        """
-        )
+        """)
 
     def monthly_temperature_trend(self) -> pd.DataFrame:
         """
@@ -324,8 +299,7 @@ class WeatherQueries:
         whether each city is warming or cooling over the collection period.
         """
         logger.info("Running: monthly_temperature_trend")
-        return self.connector.execute_query(
-            """
+        return self.connector.execute_query("""
             SELECT
                 city,
                 DATE_TRUNC('month', recorded_at)                                    AS month,
@@ -338,36 +312,104 @@ class WeatherQueries:
             FROM weather_data
             GROUP BY city, DATE_TRUNC('month', recorded_at)
             ORDER BY city, month
-        """
-        )
+        """)
 
-    def run_all(self) -> dict:
-        """
-        Run all 14 analytical queries and return results as a dictionary.
-        """
-        logger.info("Running all 14 analytical queries")
-        results = {}
-        queries = {
-            "avg_temperature_per_city": self.avg_temperature_per_city,
-            "hottest_coldest_ranking": self.hottest_coldest_ranking,
-            "humidity_trends": self.humidity_trends,
-            "wind_speed_distribution": self.wind_speed_distribution,
-            "weather_condition_frequency": self.weather_condition_frequency,
-            "temperature_humidity_correlation": self.temperature_humidity_correlation,
-            "daily_temperature_range": self.daily_temperature_range,
-            "anomaly_detection": self.anomaly_detection,
-            "pressure_trends": self.pressure_trends,
-            "feels_like_gap": self.feels_like_gap,
-            "visibility_impact": self.visibility_impact,
-            "hourly_weather_pattern": self.hourly_weather_pattern,
-            "data_freshness_per_city": self.data_freshness_per_city,
-            "monthly_temperature_trend": self.monthly_temperature_trend,
-        }
-        for name, query_fn in queries.items():
-            try:
-                results[name] = query_fn()
-                logger.info(f"Query '{name}' completed — {len(results[name])} rows")
-            except Exception as e:
-                logger.error(f"Query '{name}' failed: {e}")
-                results[name] = pd.DataFrame()
-        return results
+
+def continent_temperature_ranking(self) -> pd.DataFrame:
+    """
+    Query 15: Average temperature ranking by continent.
+    Uses RANK() window function to order continents from hottest to
+    coldest based on their average temperature across all cities and
+    readings. Demonstrates cross-city aggregation at a geographic level,
+    useful for understanding macro climate patterns in the dataset.
+    """
+    logger.info("Running: continent_temperature_ranking")
+    return self.connector.execute_query("""
+        SELECT
+            CASE city
+                WHEN 'Paris'     THEN 'Europe'
+                WHEN 'London'    THEN 'Europe'
+                WHEN 'Berlin'    THEN 'Europe'
+                WHEN 'New York'  THEN 'Americas'
+                WHEN 'Toronto'   THEN 'Americas'
+                WHEN 'Sao Paulo' THEN 'Americas'
+                WHEN 'Tokyo'     THEN 'Asia'
+                WHEN 'Mumbai'    THEN 'Asia'
+                WHEN 'Dubai'     THEN 'Asia'
+                WHEN 'Lagos'     THEN 'Africa'
+                WHEN 'Douala'    THEN 'Africa'
+                WHEN 'Nairobi'   THEN 'Africa'
+                WHEN 'Sydney'    THEN 'Oceania'
+                ELSE 'Other'
+            END                                                     AS continent,
+            ROUND(AVG(temperature), 2)                              AS avg_temperature,
+            ROUND(MIN(temperature), 2)                              AS min_temperature,
+            ROUND(MAX(temperature), 2)                              AS max_temperature,
+            COUNT(DISTINCT city)                                     AS city_count,
+            COUNT(*)                                                 AS total_readings,
+            RANK() OVER (ORDER BY AVG(temperature) DESC)             AS temperature_rank
+        FROM weather_data
+        GROUP BY continent
+        ORDER BY temperature_rank
+        """)
+
+
+def temperature_volatility_by_city(self) -> pd.DataFrame:
+    """
+    Query 16: Temperature volatility (standard deviation) per city.
+    Cities with high standard deviation have unstable, unpredictable
+    temperature patterns. Cities with low standard deviation have stable
+    climates. STDDEV_POP computes the population standard deviation
+    across all readings — more appropriate than STDDEV_SAMP here because
+    we are not sampling, we have the full dataset for the collection
+    period. Ranked from most to least volatile.
+    """
+    logger.info("Running: temperature_volatility_by_city")
+    return self.connector.execute_query("""
+        SELECT
+            city,
+            country,
+            ROUND(STDDEV_POP(temperature), 2)                   AS temperature_stddev,
+            ROUND(AVG(temperature), 2)                          AS avg_temperature,
+            ROUND(MIN(temperature), 2)                          AS min_temperature,
+            ROUND(MAX(temperature), 2)                          AS max_temperature,
+            COUNT(*)                                            AS total_readings,
+            RANK() OVER (ORDER BY STDDEV_POP(temperature) DESC) AS volatility_rank
+        FROM weather_data
+        GROUP BY city, country
+        ORDER BY volatility_rank
+        """)
+
+
+def run_all(self) -> dict:
+    """
+    Run all 16 analytical queries and return results as a dictionary.
+    """
+    logger.info("Running all 14 analytical queries")
+    results = {}
+    queries = {
+        "avg_temperature_per_city": self.avg_temperature_per_city,
+        "hottest_coldest_ranking": self.hottest_coldest_ranking,
+        "humidity_trends": self.humidity_trends,
+        "wind_speed_distribution": self.wind_speed_distribution,
+        "weather_condition_frequency": self.weather_condition_frequency,
+        "temperature_humidity_correlation": self.temperature_humidity_correlation,
+        "daily_temperature_range": self.daily_temperature_range,
+        "anomaly_detection": self.anomaly_detection,
+        "pressure_trends": self.pressure_trends,
+        "feels_like_gap": self.feels_like_gap,
+        "visibility_impact": self.visibility_impact,
+        "hourly_weather_pattern": self.hourly_weather_pattern,
+        "data_freshness_per_city": self.data_freshness_per_city,
+        "monthly_temperature_trend": self.monthly_temperature_trend,
+        "continent_temperature_ranking": self.continent_temperature_ranking,
+        "temperature_volatility_by_city": self.temperature_volatility_by_city,
+    }
+    for name, query_fn in queries.items():
+        try:
+            results[name] = query_fn()
+            logger.info(f"Query '{name}' completed — {len(results[name])} rows")
+        except Exception as e:
+            logger.error(f"Query '{name}' failed: {e}")
+            results[name] = pd.DataFrame()
+    return results

@@ -2,14 +2,15 @@
 Unit tests for DuckDB analytical queries.
 Uses sample data so no PostgreSQL connection is required.
 """
+
 import pytest
 import pandas as pd
 import numpy as np
 import duckdb
 from datetime import datetime, timedelta
 
-
 # ── Sample Data Fixture ───────────────────────────────────────────────
+
 
 @pytest.fixture
 def sample_df():
@@ -17,26 +18,31 @@ def sample_df():
     records = []
     base_time = datetime.now()
     cities = [
-        ("Paris", "FR", 15), ("London", "GB", 12),
-        ("New York", "US", 18), ("Tokyo", "JP", 22),
-        ("Douala", "CM", 28), ("Dubai", "AE", 35)
+        ("Paris", "FR", 15),
+        ("London", "GB", 12),
+        ("New York", "US", 18),
+        ("Tokyo", "JP", 22),
+        ("Douala", "CM", 28),
+        ("Dubai", "AE", 35),
     ]
     for i in range(48):
         for city, country, base_temp in cities:
-            records.append({
-                "city": city,
-                "country": country,
-                "temperature": round(base_temp + np.random.normal(0, 2), 2),
-                "feels_like": round(base_temp - 1 + np.random.normal(0, 1), 2),
-                "humidity": int(np.clip(np.random.normal(65, 10), 0, 100)),
-                "pressure": int(np.clip(np.random.normal(1013, 5), 800, 1100)),
-                "weather_description": np.random.choice([
-                    "clear sky", "few clouds", "light rain"
-                ]),
-                "wind_speed": round(abs(np.random.normal(5, 2)), 2),
-                "visibility": 10000,
-                "recorded_at": base_time - timedelta(hours=i),
-            })
+            records.append(
+                {
+                    "city": city,
+                    "country": country,
+                    "temperature": round(base_temp + np.random.normal(0, 2), 2),
+                    "feels_like": round(base_temp - 1 + np.random.normal(0, 1), 2),
+                    "humidity": int(np.clip(np.random.normal(65, 10), 0, 100)),
+                    "pressure": int(np.clip(np.random.normal(1013, 5), 800, 1100)),
+                    "weather_description": np.random.choice(
+                        ["clear sky", "few clouds", "light rain"]
+                    ),
+                    "wind_speed": round(abs(np.random.normal(5, 2)), 2),
+                    "visibility": 10000,
+                    "recorded_at": base_time - timedelta(hours=i),
+                }
+            )
     return pd.DataFrame(records)
 
 
@@ -49,6 +55,7 @@ def duckdb_conn(sample_df):
 
 
 # ── Query Tests ───────────────────────────────────────────────────────
+
 
 def test_avg_temperature_per_city(duckdb_conn):
     """Test average temperature query returns one row per city."""
@@ -168,9 +175,7 @@ def test_anomaly_detection(duckdb_conn):
 
 def test_record_count(duckdb_conn):
     """Test total record count matches expected."""
-    result = duckdb_conn.execute(
-        "SELECT COUNT(*) AS total FROM weather_data"
-    ).df()
+    result = duckdb_conn.execute("SELECT COUNT(*) AS total FROM weather_data").df()
     assert result["total"][0] == 288
 
 
@@ -181,7 +186,8 @@ def test_all_cities_present(duckdb_conn):
     ).df()
     expected_cities = {"Paris", "London", "New York", "Tokyo", "Douala", "Dubai"}
     assert set(result["city"].tolist()) == expected_cities
-    
+
+
 def test_data_freshness_per_city(duckdb_conn):
     """Test freshness query flags status per city and covers every city."""
     result = duckdb_conn.execute("""
@@ -199,7 +205,9 @@ def test_data_freshness_per_city(duckdb_conn):
         ORDER BY hours_since_last_record DESC
     """).df()
     assert len(result) == 6
-    assert set(result["freshness_status"].unique()).issubset({"Fresh", "Delayed", "Stale"})
+    assert set(result["freshness_status"].unique()).issubset(
+        {"Fresh", "Delayed", "Stale"}
+    )
 
 
 def test_monthly_temperature_trend(duckdb_conn):
@@ -218,4 +226,77 @@ def test_monthly_temperature_trend(duckdb_conn):
         ORDER BY city, month
     """).df()
     assert len(result) > 0
-    assert "change_from_previous_month" in result.columns    
+    assert "change_from_previous_month" in result.columns
+
+
+def test_continent_temperature_ranking(duckdb_conn):
+    """
+    Query 15: Continent temperature ranking uses RANK() window function.
+    Verifies the query returns one row per continent, that temperature_rank
+    is present, and that the hottest continent ranks first (rank=1).
+    RANK() means rank 1 = highest avg_temperature.
+    """
+
+    result = duckdb_conn.execute("""
+        SELECT
+            CASE city
+                WHEN 'Paris'     THEN 'Europe'
+                WHEN 'London'    THEN 'Europe'
+                WHEN 'Berlin'    THEN 'Europe'
+                WHEN 'New York'  THEN 'Americas'
+                WHEN 'Toronto'   THEN 'Americas'
+                WHEN 'Sao Paulo' THEN 'Americas'
+                WHEN 'Tokyo'     THEN 'Asia'
+                WHEN 'Mumbai'    THEN 'Asia'
+                WHEN 'Dubai'     THEN 'Asia'
+                WHEN 'Lagos'     THEN 'Africa'
+                WHEN 'Douala'    THEN 'Africa'
+                WHEN 'Nairobi'   THEN 'Africa'
+                WHEN 'Sydney'    THEN 'Oceania'
+                ELSE 'Other'
+            END                                                     AS continent,
+            ROUND(AVG(temperature), 2)                              AS avg_temperature,
+            ROUND(MIN(temperature), 2)                              AS min_temperature,
+            ROUND(MAX(temperature), 2)                              AS max_temperature,
+            COUNT(DISTINCT city)                                     AS city_count,
+            COUNT(*)                                                 AS total_readings,
+            RANK() OVER (ORDER BY AVG(temperature) DESC)             AS temperature_rank
+        FROM weather_data
+        GROUP BY continent
+        ORDER BY temperature_rank
+    """).df()
+    assert len(result) > 0
+    assert "temperature_rank" in result.columns
+    assert "avg_temperature" in result.columns
+    assert "city_count" in result.columns
+    assert result["temperature_rank"].iloc[0] == 1
+    assert result["avg_temperature"].iloc[0] == result["avg_temperature"].max()
+
+
+def test_temperature_volatility_by_city(duckdb_conn):
+    """
+    Query 16: Temperature volatility uses STDDEV_POP window function.
+    Verifies the query returns one row per city, that temperature_stddev
+    is non-negative for all cities, that volatility_rank is present,
+    and that rank 1 corresponds to the highest standard deviation.
+    """
+    result = duckdb_conn.execute("""
+        SELECT
+            city,
+            country,
+            ROUND(STDDEV_POP(temperature), 2)                   AS temperature_stddev,
+            ROUND(AVG(temperature), 2)                          AS avg_temperature,
+            ROUND(MIN(temperature), 2)                          AS min_temperature,
+            ROUND(MAX(temperature), 2)                          AS max_temperature,
+            COUNT(*)                                            AS total_readings,
+            RANK() OVER (ORDER BY STDDEV_POP(temperature) DESC) AS volatility_rank
+        FROM weather_data
+        GROUP BY city, country
+        ORDER BY volatility_rank
+    """).df()
+    assert len(result) > 0
+    assert "temperature_stddev" in result.columns
+    assert "volatility_rank" in result.columns
+    assert (result["temperature_stddev"] >= 0).all()
+    assert result["volatility_rank"].iloc[0] == 1
+    assert result["temperature_stddev"].iloc[0] == result["temperature_stddev"].max()
