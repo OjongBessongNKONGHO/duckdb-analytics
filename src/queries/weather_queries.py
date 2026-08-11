@@ -188,7 +188,7 @@ class WeatherQueries:
         """
         Query 9: Atmospheric pressure trends per city over time.
         Falling pressure indicates incoming storms, rising pressure
-        indicates improving weather — useful for forecasting.
+        indicates improving weather -- useful for forecasting.
         """
         logger.info("Running: pressure_trends")
         return self.connector.execute_query("""
@@ -252,9 +252,8 @@ class WeatherQueries:
     def hourly_weather_pattern(self) -> pd.DataFrame:
         """
         Query 12: Average conditions by hour of day across all cities.
-        Reveals diurnal patterns — temperature typically peaks mid-
-        afternoon and troughs before dawn. Distinct from the daily
-        queries above, which group by date rather than time of day.
+        Reveals diurnal patterns -- temperature typically peaks mid-
+        afternoon and troughs before dawn.
         """
         logger.info("Running: hourly_weather_pattern")
         return self.connector.execute_query("""
@@ -272,8 +271,7 @@ class WeatherQueries:
     def data_freshness_per_city(self) -> pd.DataFrame:
         """
         Query 13: Time since the most recent reading per city.
-        Flags cities whose data pipeline may be stalled or lagging,
-        since a stale feed silently skews every aggregate query above.
+        Flags cities whose data pipeline may be stalled or lagging.
         """
         logger.info("Running: data_freshness_per_city")
         return self.connector.execute_query("""
@@ -295,8 +293,7 @@ class WeatherQueries:
     def monthly_temperature_trend(self) -> pd.DataFrame:
         """
         Query 14: Month-over-month average temperature per city.
-        Uses LAG to compute the change from the previous month, showing
-        whether each city is warming or cooling over the collection period.
+        Uses LAG to compute the change from the previous month.
         """
         logger.info("Running: monthly_temperature_trend")
         return self.connector.execute_query("""
@@ -314,102 +311,98 @@ class WeatherQueries:
             ORDER BY city, month
         """)
 
-
-def continent_temperature_ranking(self) -> pd.DataFrame:
-    """
-    Query 15: Average temperature ranking by continent.
-    Uses RANK() window function to order continents from hottest to
-    coldest based on their average temperature across all cities and
-    readings. Demonstrates cross-city aggregation at a geographic level,
-    useful for understanding macro climate patterns in the dataset.
-    """
-    logger.info("Running: continent_temperature_ranking")
-    return self.connector.execute_query("""
-        SELECT
-            CASE city
-                WHEN 'Paris'     THEN 'Europe'
-                WHEN 'London'    THEN 'Europe'
-                WHEN 'Berlin'    THEN 'Europe'
-                WHEN 'New York'  THEN 'Americas'
-                WHEN 'Toronto'   THEN 'Americas'
-                WHEN 'Sao Paulo' THEN 'Americas'
-                WHEN 'Tokyo'     THEN 'Asia'
-                WHEN 'Mumbai'    THEN 'Asia'
-                WHEN 'Dubai'     THEN 'Asia'
-                WHEN 'Lagos'     THEN 'Africa'
-                WHEN 'Douala'    THEN 'Africa'
-                WHEN 'Nairobi'   THEN 'Africa'
-                WHEN 'Sydney'    THEN 'Oceania'
-                ELSE 'Other'
-            END                                                     AS continent,
-            ROUND(AVG(temperature), 2)                              AS avg_temperature,
-            ROUND(MIN(temperature), 2)                              AS min_temperature,
-            ROUND(MAX(temperature), 2)                              AS max_temperature,
-            COUNT(DISTINCT city)                                     AS city_count,
-            COUNT(*)                                                 AS total_readings,
-            RANK() OVER (ORDER BY AVG(temperature) DESC)             AS temperature_rank
-        FROM weather_data
-        GROUP BY continent
-        ORDER BY temperature_rank
+    def continent_temperature_ranking(self) -> pd.DataFrame:
+        """
+        Query 15: Average temperature ranking by continent.
+        Uses RANK() window function to order continents from hottest to
+        coldest based on their average temperature across all cities and
+        readings. Continent is derived via CASE since the raw dataset has
+        no continent column. Demonstrates cross-city geographic aggregation
+        and derived column construction inside SQL.
+        """
+        logger.info("Running: continent_temperature_ranking")
+        return self.connector.execute_query("""
+            SELECT
+                CASE city
+                    WHEN 'Paris'     THEN 'Europe'
+                    WHEN 'London'    THEN 'Europe'
+                    WHEN 'Berlin'    THEN 'Europe'
+                    WHEN 'New York'  THEN 'Americas'
+                    WHEN 'Toronto'   THEN 'Americas'
+                    WHEN 'Sao Paulo' THEN 'Americas'
+                    WHEN 'Tokyo'     THEN 'Asia'
+                    WHEN 'Mumbai'    THEN 'Asia'
+                    WHEN 'Dubai'     THEN 'Asia'
+                    WHEN 'Lagos'     THEN 'Africa'
+                    WHEN 'Douala'    THEN 'Africa'
+                    WHEN 'Nairobi'   THEN 'Africa'
+                    WHEN 'Sydney'    THEN 'Oceania'
+                    ELSE 'Other'
+                END                                                     AS continent,
+                ROUND(AVG(temperature), 2)                              AS avg_temperature,
+                ROUND(MIN(temperature), 2)                              AS min_temperature,
+                ROUND(MAX(temperature), 2)                              AS max_temperature,
+                COUNT(DISTINCT city)                                    AS city_count,
+                COUNT(*)                                                AS total_readings,
+                RANK() OVER (ORDER BY AVG(temperature) DESC)            AS temperature_rank
+            FROM weather_data
+            GROUP BY continent
+            ORDER BY temperature_rank
         """)
 
-
-def temperature_volatility_by_city(self) -> pd.DataFrame:
-    """
-    Query 16: Temperature volatility (standard deviation) per city.
-    Cities with high standard deviation have unstable, unpredictable
-    temperature patterns. Cities with low standard deviation have stable
-    climates. STDDEV_POP computes the population standard deviation
-    across all readings — more appropriate than STDDEV_SAMP here because
-    we are not sampling, we have the full dataset for the collection
-    period. Ranked from most to least volatile.
-    """
-    logger.info("Running: temperature_volatility_by_city")
-    return self.connector.execute_query("""
-        SELECT
-            city,
-            country,
-            ROUND(STDDEV_POP(temperature), 2)                   AS temperature_stddev,
-            ROUND(AVG(temperature), 2)                          AS avg_temperature,
-            ROUND(MIN(temperature), 2)                          AS min_temperature,
-            ROUND(MAX(temperature), 2)                          AS max_temperature,
-            COUNT(*)                                            AS total_readings,
-            RANK() OVER (ORDER BY STDDEV_POP(temperature) DESC) AS volatility_rank
-        FROM weather_data
-        GROUP BY city, country
-        ORDER BY volatility_rank
+    def temperature_volatility_by_city(self) -> pd.DataFrame:
+        """
+        Query 16: Temperature volatility (standard deviation) per city.
+        Cities with high standard deviation have unstable, unpredictable
+        temperature patterns. STDDEV_POP is used because we have the full
+        collection period dataset, not a sample. Ranked from most to least
+        volatile.
+        """
+        logger.info("Running: temperature_volatility_by_city")
+        return self.connector.execute_query("""
+            SELECT
+                city,
+                country,
+                ROUND(STDDEV_POP(temperature), 2)                   AS temperature_stddev,
+                ROUND(AVG(temperature), 2)                          AS avg_temperature,
+                ROUND(MIN(temperature), 2)                          AS min_temperature,
+                ROUND(MAX(temperature), 2)                          AS max_temperature,
+                COUNT(*)                                            AS total_readings,
+                RANK() OVER (ORDER BY STDDEV_POP(temperature) DESC) AS volatility_rank
+            FROM weather_data
+            GROUP BY city, country
+            ORDER BY volatility_rank
         """)
 
-
-def run_all(self) -> dict:
-    """
-    Run all 16 analytical queries and return results as a dictionary.
-    """
-    logger.info("Running all 14 analytical queries")
-    results = {}
-    queries = {
-        "avg_temperature_per_city": self.avg_temperature_per_city,
-        "hottest_coldest_ranking": self.hottest_coldest_ranking,
-        "humidity_trends": self.humidity_trends,
-        "wind_speed_distribution": self.wind_speed_distribution,
-        "weather_condition_frequency": self.weather_condition_frequency,
-        "temperature_humidity_correlation": self.temperature_humidity_correlation,
-        "daily_temperature_range": self.daily_temperature_range,
-        "anomaly_detection": self.anomaly_detection,
-        "pressure_trends": self.pressure_trends,
-        "feels_like_gap": self.feels_like_gap,
-        "visibility_impact": self.visibility_impact,
-        "hourly_weather_pattern": self.hourly_weather_pattern,
-        "data_freshness_per_city": self.data_freshness_per_city,
-        "monthly_temperature_trend": self.monthly_temperature_trend,
-        "continent_temperature_ranking": self.continent_temperature_ranking,
-        "temperature_volatility_by_city": self.temperature_volatility_by_city,
-    }
-    for name, query_fn in queries.items():
-        try:
-            results[name] = query_fn()
-            logger.info(f"Query '{name}' completed — {len(results[name])} rows")
-        except Exception as e:
-            logger.error(f"Query '{name}' failed: {e}")
-            results[name] = pd.DataFrame()
-    return results
+    def run_all(self) -> dict:
+        """
+        Run all 16 analytical queries and return results as a dictionary.
+        """
+        logger.info("Running all 16 analytical queries")
+        results = {}
+        queries = {
+            "avg_temperature_per_city": self.avg_temperature_per_city,
+            "hottest_coldest_ranking": self.hottest_coldest_ranking,
+            "humidity_trends": self.humidity_trends,
+            "wind_speed_distribution": self.wind_speed_distribution,
+            "weather_condition_frequency": self.weather_condition_frequency,
+            "temperature_humidity_correlation": self.temperature_humidity_correlation,
+            "daily_temperature_range": self.daily_temperature_range,
+            "anomaly_detection": self.anomaly_detection,
+            "pressure_trends": self.pressure_trends,
+            "feels_like_gap": self.feels_like_gap,
+            "visibility_impact": self.visibility_impact,
+            "hourly_weather_pattern": self.hourly_weather_pattern,
+            "data_freshness_per_city": self.data_freshness_per_city,
+            "monthly_temperature_trend": self.monthly_temperature_trend,
+            "continent_temperature_ranking": self.continent_temperature_ranking,
+            "temperature_volatility_by_city": self.temperature_volatility_by_city,
+        }
+        for name, query_fn in queries.items():
+            try:
+                results[name] = query_fn()
+                logger.info(f"Query '{name}' completed -- {len(results[name])} rows")
+            except Exception as e:
+                logger.error(f"Query '{name}' failed: {e}")
+                results[name] = pd.DataFrame()
+        return results
